@@ -1322,6 +1322,38 @@
             checkSinglePossibility();
         }
         
+
+        function checkAllSolutions() {
+            // Check all three categories for solution
+            ['suspect', 'weapon', 'location'].forEach(cardType => {
+                const cardsOfType = getCardsOfType(cardType);
+                
+                // Count how many eliminated from all players
+                const notInHands = cardsOfType.filter(card => 
+                    game.players.every((_, i) => game.playerData[i].notHas.has(card))
+                );
+                
+                if (notInHands.length === cardsOfType.length - 1) {
+                    // All but one eliminated - that one is solution
+                    const solutionCard = cardsOfType.find(card => !notInHands.includes(card));
+                    if (solutionCard && game.solution[cardType] === null) {
+                        game.solution[cardType] = solutionCard;
+                        log(`🎯 SOLUTION DEDUCED: ${cardType} = ${solutionCard} (all others eliminated)`);
+                        
+                        // Mark all players as not having this card
+                        game.players.forEach((_, i) => {
+                            if (!game.playerData[i].notHas.has(solutionCard)) {
+                                game.playerData[i].notHas.add(solutionCard);
+                                log(`  → Auto X (solution): ${game.players[i]} does NOT have ${solutionCard}`);
+                            }
+                        });
+                    }
+                }
+            });
+            
+            checkSinglePossibility();
+        }
+        
         function checkSinglePossibility() {
             game.players.forEach((player, playerIdx) => {
                 const data = game.playerData[playerIdx];
@@ -1606,6 +1638,7 @@
                         }
                     });
                     guessRecord.responses.push({ player, cardShown: 'NO_CARDS' });
+                    checkAllSolutions();
                 } else if (response === 'no') {
                     // Player has none of these cards
                     cards.forEach(card => {
@@ -1614,6 +1647,7 @@
                         }
                     });
                     guessRecord.responses.push({ player, cardShown: 'NO_CARDS' });
+                    checkAllSolutions();
                 } else if (response === 'unknown') {
                     // Player showed unknown card - create clause
                     learnClause(currentIndex, new Set(cards));
